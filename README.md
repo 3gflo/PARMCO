@@ -1,95 +1,109 @@
-# Phone App RP4 Motor Control (PARMCO) 🚁⚙️
+# Phone APP RP4 Motor Control (PARMCO) 🚁⚙️
 
 [![Raspberry Pi](https://img.shields.io/badge/-Raspberry_Pi-C51A4A?style=for-the-badge&logo=Raspberry-Pi)](https://www.raspberrypi.org/)
+[![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c)](https://en.wikipedia.org/wiki/C_(programming_language))
 [![Bluetooth](https://img.shields.io/badge/-Bluetooth-0082FC?style=for-the-badge&logo=bluetooth)](https://www.bluetooth.com/)
-[![Control Systems](https://img.shields.io/badge/Control-PID-brightgreen?style=for-the-badge)]()
 [![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)]()
 
-**AeroSync** is a full-stack embedded engineering project that bridges mobile application development with real-world hardware control. Utilizing a Raspberry Pi 4 (RP4) and a custom-designed MOSFET driver circuit, this system allows users to wirelessly control and monitor a DC motor and propeller setup via a dedicated Bluetooth mobile application. 
+**PARMCO** is a full-stack embedded engineering project bridging mobile application development with low-level C hardware control. Utilizing a Raspberry Pi 4 (RP4), an L293D H-Bridge motor driver, and the `bcm2835` library, this system allows users to wirelessly control and monitor a 12V DC motor and propeller setup via a dedicated Bluetooth (RFCOMM) mobile application.
 
-This project features both open-loop manual controls and closed-loop automatic controls using Infrared (IR) sensor feedback for precise RPM maintenance and dynamic target-matching.
+This project features both open-loop manual controls and closed-loop automatic controls using Infrared (IR) sensor feedback for precise RPM calculations and dynamic target-matching.
 
 ---
 
 ## 📋 Table of Contents
 1. [Key Features](#-key-features)
-2. [System Architecture](#-system-architecture)
-3. [Modes of Operation](#-modes-of-operation)
-4. [Hardware Design & Circuit Analysis](#-hardware-design--circuit-analysis)
-5. [Software Setup & Deployment](#-software-setup--deployment)
-6. [Future Improvements](#-future-improvements)
+2. [Hardware Architecture & Circuit](#-hardware-architecture--circuit)
+3. [Software & Subsystems](#-software--subsystems)
+4. [Bluetooth Protocol Definition](#-bluetooth-protocol-definition)
+5. [Compilation & Deployment](#-compilation--deployment)
 
 ---
 
 ## ✨ Key Features
 
 ### 📱 Mobile App Interface
-A highly intuitive, user-friendly interface designed for comprehensive motor control:
-* **Directional Control:** Toggle between Clockwise (CW) and Counter-Clockwise (CCW) rotation.
-* **Granular Speed Control:** Faster/Slower manual overrides.
-* **Power State:** Immediate Stop/Start functionality.
+A highly intuitive interface designed for comprehensive motor control:
+* **Directional Control:** Toggle between Clockwise and Counter-Clockwise rotation.
+* **Granular Speed Control:** Adjust manual throttle parameters.
 * **Target RPM Input:** Direct numerical input for desired motor speed.
 * **Live Telemetry:** Real-time display of the *Actual RPM* streamed back from the RP4.
-* **Mode Selector:** Seamless switching between Manual, Auto-Maintain, and Auto-Match modes.
+* **Mode Selector:** Seamless switching between Manual, Auto-Maintain, and Auto-Match (Synced) modes.
 
-### 📡 Robust Bluetooth (BLE) Communication
-* **Persistent Pairing:** The app and RP4 handle standard Bluetooth handshake protocols, remembering the connection across sessions.
-* **Self-Healing Connection:** If a device is "forgotten," the system can re-establish and save a new connection seamlessly.
-* **Headless RP4 Operation:** The RP4 is configured to boot directly into a "quiet" state (motor off) upon powering up, independently running the server script and waiting for the app's BLE connection without requiring external monitors or keyboards.
-
----
-
-## ⚙️ Modes of Operation
-
-AeroSync operates in three distinct modes, showcasing different levels of control theory:
-
-1. **Manual Mode (Open-Loop):** The user has direct control over the motor's PWM duty cycle using the "Speed" controls on the app. No active feedback is used to regulate speed against load changes.
-2. **Auto/Maintain (Closed-Loop PID):** The user inputs a *Desired RPM*. The RP4 reads the *Actual RPM* using an IR sensor pointed at the motor's propeller. Using a PID (Proportional-Integral-Derivative) control algorithm, the RP4 dynamically adjusts the power to maintain the exact desired speed, regardless of minor aerodynamic load changes.
-3. **Auto/Match (Dynamic Closed-Loop):** The system relies on a *second* IR sensor observing an external, independent propeller. The RP4 calculates the external propeller's RPM in real-time and continuously updates the PID controller's setpoint. Our motor autonomously adjusts its speed to perfectly mimic the external source.
+### 📡 Robust Bluetooth RFCOMM Communication
+* **C-Based BlueZ Server:** The RP4 runs a lightweight C server utilizing `sys/socket.h` and `bluetooth/rfcomm.h` to accept incoming mobile connections.
+* **Headless Telemetry:** The server processes asynchronous commands while maintaining a stable loop to stream `MEASURED_RPM` back to the app at 4Hz (250ms intervals).
 
 ---
 
-## 🔌 Hardware Design & Circuit Analysis
+## 🔌 Hardware Architecture & Circuit
 
-### Components Used
+The physical system isolates the low-voltage logic of the Raspberry Pi from the high-current demands of the motor using a dedicated driver IC. 
+
+### Core Components
 * **Raspberry Pi 4 Model B** (Logic & Control)
-* **DC Motor with Propeller**
-* **N-Channel Logic-Level MOSFET** (e.g., IRLZ44N)
-* **Flyback Diode** (e.g., 1N4007)
-* **2x IR Obstacle Avoidance Sensors** (For RPM encoding)
-* **Resistors** (Gate pull-down and current limiting)
-* **External Power Supply** (For the motor)
+* **12V DC Motor with Propeller**
+* **L293D Motor Driver IC** (H-Bridge)
+* **IR Obstacle Avoidance Sensor** (For RPM encoding)
+* **IRFZ34N N-Channel MOSFET** (For LED state indication)
+* **Isolated Power Supplies:** 5V DC for logic, 12V DC for the motor.
 
-### Circuit Setup & "How It Works" Analysis
-To safely control a high-current DC motor using the low-current 3.3V GPIO pins of the Raspberry Pi 4, we utilize a **MOSFET as an electronic switch**. 
+### "How It Works" Circuit Analysis
+1. **The L293D H-Bridge:** Instead of a single MOSFET, we use an H-Bridge to allow bi-directional motor control. 
+   * **PWM (Speed):** The RP4 generates a hardware PWM signal (via `bcm2835`) sent to the `EN1` (Enable) pin of the L293D. Modulating this signal controls the overall voltage delivered to the motor.
+   * **Direction:** Two standard GPIO pins connect to `IN1` and `IN2`. Setting `IN1` HIGH and `IN2` LOW drives the motor forward. Reversing these states reverses the motor.
+2. **IR Sensor Feedback:** The IR sensor emits an infrared beam that bounces off the propeller blades. The receiver triggers a hardware interrupt (falling edge detection) on the RP4's GPIO 25. The code counts these pulses over a 1-second interval to calculate true RPM ($RPM = (\text{Pulses} \times 60) / 3$).
+3. **MOSFET Indicator:** An IRFZ34N MOSFET is tied to the `OUT2` pin of the L293D. When that side of the H-bridge goes high, it triggers the MOSFET gate, sinking current for a 470Ω LED circuit. This acts as a visual hardware indicator of the motor's directional state.
 
-**1. The MOSFET Driver Circuit:**
-* **The Gate:** A PWM (Pulse Width Modulation) signal from the RP4's GPIO is sent to the MOSFET's Gate. A resistor (e.g., 10kΩ) is placed between the Gate and Ground to act as a pull-down, ensuring the MOSFET turns completely off when the RP4 signal goes low (preventing floating states).
-* **The Source:** Connected directly to the common Ground shared by the RP4 and the external motor power supply.
-* **The Drain:** Connected to the negative terminal of the DC Motor. The positive terminal of the motor connects directly to the external power supply.
-* **How it works:** When the RP4 sends a HIGH signal, the MOSFET "opens the gate," allowing current to flow from the external supply, through the motor, into the Drain, and out the Source to Ground, spinning the motor. By rapidly pulsing this signal (PWM), we control the average voltage, and thus the speed.
-
-**2. Inductive Load Protection (Flyback Diode):**
-* Motors are highly inductive. When the MOSFET switches off, the magnetic field in the motor collapses, creating a massive reverse voltage spike. 
-* **How it works:** A Flyback Diode is placed in parallel with the motor (Cathode to positive, Anode to negative). This provides a safe path for the inductive kickback current to loop back and dissipate harmlessly, protecting the MOSFET and the fragile RP4 GPIO pins from destruction.
-
-**3. IR Sensor Feedback:**
-* The IR sensors emit an infrared beam that bounces off the propeller blades as they pass. The receiver detects this reflection, pulling a digital signal pin HIGH/LOW.
-* **How it works:** The RP4 utilizes hardware interrupts to count these pulses over a set time interval, mathematically converting the pulse frequency into an accurate RPM reading.
+*(Note: The schematic maps PWM to GPIO 22, IN1 to 17, and IN2 to 27. Ensure `basic_motor_control.c` macro definitions reflect these pins for final integration).*
 
 ---
 
-## 🚀 Software Setup & Deployment
+## ⚙️ Software & Subsystems
 
-*(Note: Replace with your specific repository instructions)*
+The backend is written entirely in C for maximum performance and minimum latency. It is divided into two primary scripts:
+
+### 1. `basic_motor_control.c` (Hardware Abstraction & Testing)
+This script utilizes the `bcm2835` C library for direct memory access to the GPIO registers, bypassing Linux kernel overhead for precise microsecond timing.
+* Handles hardware PWM generation.
+* Manages non-blocking keyboard inputs (`kbhit`) for local terminal testing.
+* Polls the IR sensor state at ~1000 Hz for highly accurate pulse-counting and RPM calculation.
+
+### 2. `motor_server.c` (Communications)
+This script binds a Bluetooth RFCOMM socket to Channel 1.
+* Listens for incoming connections from the Android app.
+* Parses delimited string commands (e.g., `DIR:FORWARD\n`).
+* Simulates/calculates target RPM matching and writes telemetry data back to the client socket.
+
+---
+
+## 🗣️ Bluetooth Protocol Definition
+
+The application and the Raspberry Pi communicate using simple, newline-terminated ASCII strings.
+
+### Client (App) to Server (RP4) Commands
+| Command Format | Description |
+| :--- | :--- |
+| `STATE:START` | Enables the motor / control loop. |
+| `STATE:STOP` | Immediately cuts power to the motor. |
+| `DIR:FORWARD` | Sets L293D IN1 HIGH, IN2 LOW. |
+| `DIR:REVERSE` | Sets L293D IN1 LOW, IN2 HIGH. |
+| `MODE:MANUAL` | Disables PID loop; direct PWM control. |
+| `MODE:MAINTAIN`| Enables closed-loop PID to hold target RPM. |
+| `MODE:SYNCED` | Matches RPM to a secondary external IR sensor. |
+| `RPM:<value>` | Sets the target integer RPM (e.g., `RPM:1500`). |
+
+### Server (RP4) to Client (App) Telemetry
+| Message Format | Description |
+| :--- | :--- |
+| `MEASURED_RPM:<value>` | Streams the current live RPM back to the app UI. |
+
+---
+
+## 🚀 Compilation & Deployment
 
 ### Prerequisites
-* Raspberry Pi OS (Bullseye or later)
-* Python 3.9+
-* Required Libraries: `RPi.GPIO`, `bluez`, `pybluez` (or specific BLE library used)
-
-### Raspberry Pi Configuration (Headless Boot)
-To ensure the RP4 boots into the application automatically:
-1. Clone the repository to the RP4:
-   ```bash
-   git clone [https://github.com/YourUsername/AeroSync.git](https://github.com/YourUsername/AeroSync.git)
+You must have the `bcm2835` library and `BlueZ` development headers installed on your Raspberry Pi:
+```bash
+sudo apt-get update
+sudo apt-get install libbluetooth-dev
