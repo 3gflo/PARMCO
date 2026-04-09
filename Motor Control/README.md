@@ -29,7 +29,7 @@ The software interfaces with hardware through the `bcm2835` library using memory
 > **Important:** There is an intentional discrepancy between the test schematic (`image_a9dc87.jpg`) and the final software pin definitions. Wire the physical hardware to the **Software (BCM)** column below.
 
 | Component Function | Macro Name | BCM GPIO (Software) |
-| :--- | :--- | :---: | :---: |
+| :--- | :--- | :---: |
 | PWM Speed Control → L293D EN1 | `PWM_PIN` | **18** |
 | H-Bridge Forward → L293D IN1 | `DIR1_PIN` | **23** |
 | H-Bridge Reverse → L293D IN2 | `DIR2_PIN` | **24** |
