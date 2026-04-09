@@ -1,59 +1,115 @@
-# 🍓 PARMCO: Motor Control Software & Backend
+# 🍓 PARMCO: Motor Control Software
 
 [![Raspberry Pi](https://img.shields.io/badge/-Raspberry_Pi-C51A4A?style=for-the-badge&logo=Raspberry-Pi)](https://www.raspberrypi.org/)
 [![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c)](https://en.wikipedia.org/wiki/C_(programming_language))
 [![Assembly](https://img.shields.io/badge/Assembly-000000?style=for-the-badge&logo=assembly)](https://en.wikipedia.org/wiki/Assembly_language)
 
-This directory contains the low-level embedded software for the **Phone APP RP4 Motor Control (PARMCO)** project. The codebase runs on a Raspberry Pi 4 (RP4) and is responsible for bridging wireless Bluetooth commands with physical hardware execution using the `bcm2835` C library and custom ARM assembly routines.
+This directory contains all Raspberry Pi software for PARMCO. The codebase is written in C and ARM Assembly for maximum performance and minimal latency, interfacing directly with GPIO hardware via the `bcm2835` library.
+
+For hardware schematics and a full system overview, see the [top-level README](../README.md).
 
 ---
 
 ## 📂 Folder Contents
 
-* **`basic_motor_control.c`**: A standalone C program designed to test hardware limits. It utilizes memory-mapped GPIO access to generate hardware PWM, read keyboard inputs non-blockingly, and poll an IR sensor at ~1000 Hz for real-time RPM calculation.
-* **`motor_server.c`**: The Bluetooth SPP (Serial Port Profile) server utilizing the `BlueZ` stack. It binds an RFCOMM socket to Channel 1, parses delimited string commands from the Android application, and manages the main control loop/telemetry stream.
-* **`control.S`**: An ARM Assembly file containing the highly optimized `adjust_pwm` function. It acts as a proportional controller, calculating the error between the target and current RPM and adjusting the PWM signal with dynamic gain based on the speed tier.
-* **`Makefile`**: Build automation script to compile the C and Assembly sources into a single executable and run it with the necessary root privileges.
-* **`image_a9dc87.jpg`**: The official hardware schematic detailing the L293D H-Bridge, IRFZ34N MOSFET indicator, and power isolation.
+| File | Description |
+| :--- | :--- |
+| **`basic_motor_control.c`** | Standalone hardware test program. Generates hardware PWM, reads keyboard input non-blockingly (`kbhit`), and polls the IR sensor at ~1000 Hz for real-time RPM calculation. |
+| **`motor_server.c`** | Bluetooth RFCOMM server. Binds to Channel 1, accepts the Android app connection, parses incoming commands, runs the main control loop, and streams telemetry back at ~4Hz. |
+| **`control.S`** | ARM Assembly implementation of the `adjust_pwm` proportional controller. Offloads the closed-loop error calculation from C for maximum timing precision. |
+| **`Makefile`** | Compiles C and Assembly sources into a single executable and runs it with the required root privileges. |
+| **`image_a9dc87.jpg`** | Hardware schematic showing the L293D H-Bridge, IRFZ34N MOSFET indicator circuit, and power isolation. |
 
 ---
 
-## ⚙️ Hardware Interface & Pinout
+## ⚙️ GPIO Pin Mappings
 
-The software interfaces with the physical world primarily through the `bcm2835` library. 
+The software interfaces with hardware through the `bcm2835` library using memory-mapped GPIO access, bypassing Linux kernel overhead for precise microsecond timing.
 
-**Important Note on Pin Mappings:** There is an intentional discrepancy between the testing schematic and the final software definitions. If wiring the physical hardware, please adhere to the software definitions below to ensure the code executes correctly:
+> **Important:** There is an intentional discrepancy between the test schematic (`image_a9dc87.jpg`) and the final software pin definitions. Wire the physical hardware to the **Software (BCM)** column below.
 
-| Component Function | Variable Name | BCM GPIO Pin (Software) | Schematic Pin |
-| :--- | :--- | :--- | :--- |
-| **PWM Speed Control** | `PWM_PIN` | **18** | 22 |
-| **H-Bridge IN1 (Forward)** | `DIR1_PIN` | **23** | 17 |
-| **H-Bridge IN2 (Reverse)**| `DIR2_PIN` | **24** | 27 |
-| **IR Sensor Pulse In** | `IR_PIN` | **25** | 25 |
-
-### RPM Encoding Logic
-The system calculates real-time RPM using a standard 3-pin IR Obstacle Avoidance Sensor. The `basic_motor_control.c` script polls GPIO 25. When the signal drops from `HIGH` to `LOW` (falling edge), a pulse is counted. Because the propeller has 3 blades, the software calculates RPM every 1 second using: 
-$RPM = (\text{Pulse Count} \times 60) / 3$
+| Component Function | Macro Name | BCM GPIO (Software) | BCM GPIO (Schematic) |
+| :--- | :--- | :---: | :---: |
+| PWM Speed Control → L293D EN1 | `PWM_PIN` | **18** | 22 |
+| H-Bridge Forward → L293D IN1 | `DIR1_PIN` | **23** | 17 |
+| H-Bridge Reverse → L293D IN2 | `DIR2_PIN` | **24** | 27 |
+| IR Sensor Pulse Input | `IR_PIN` | **25** | 25 |
 
 ---
 
-## 🧠 Assembly Control Logic (`control.S`)
+## 📡 RPM Encoding Logic
 
-To ensure maximum performance in the closed-loop state, the proportional error calculation is offloaded to a custom ARM Assembly routine. 
+RPM is measured using a standard 3-pin IR Obstacle Avoidance Sensor aimed at the propeller.
 
-The C code calls `int adjust_pwm(int current_rpm, int target_rpm, int current_pwm, int pwm_range);`, which maps to registers `r0` through `r3`. The assembly routine implements dynamic gain:
-1. **Error Calculation:** Subtracts current RPM from target RPM.
-2. **Dynamic Gain:**
-   * **Gentle Gain (Target < 1500 RPM):** Divides the error by 32 (via Arithmetic Shift Right `asr #5`) to prevent aggressive oscillation at low speeds.
-   * **Aggressive Gain (Target >= 1500 RPM):** Divides the error by 16 (`asr #4`) to provide enough torque to reach high speeds quickly.
-3. **Clamping:** Safely clamps the resulting PWM value between 0 and the defined `pwm_range` (1024) before returning to the C loop.
+`basic_motor_control.c` polls GPIO 25 at ~1000 Hz. Each **falling edge** (HIGH → LOW transition) represents one blade passing the sensor. Since the propeller has 3 blades, one full rotation produces 3 pulses. After accumulating pulses over a 1-second window:
+
+$$RPM = (\text{Pulse Count} \times 60) / 3$$
+
+This polling approach (rather than hardware interrupts) is used in the test script for simplicity. `motor_server.c` integrates this count into the main telemetry loop.
+
+---
+
+## 🧠 Assembly Proportional Controller (`control.S`)
+
+The closed-loop speed controller is implemented in ARM Assembly to ensure the error correction calculation adds negligible latency to the control loop.
+
+### C Signature
+```c
+int adjust_pwm(int current_rpm, int target_rpm, int current_pwm, int pwm_range);
+```
+Arguments map to ARM registers `r0`–`r3`. The function returns the corrected PWM value in `r0`.
+
+### Algorithm
+
+1. **Error Calculation**
+   ```
+   error = target_rpm - current_rpm
+   ```
+
+2. **Dynamic Gain** — gain is selected based on the target RPM tier to balance responsiveness against oscillation:
+
+   | Condition | Shift | Effective Divisor | Behaviour |
+   | :--- | :--- | :---: | :--- |
+   | `target_rpm < 1500` | `asr #5` | ÷ 32 | Gentle — prevents oscillation at low speeds |
+   | `target_rpm >= 1500` | `asr #4` | ÷ 16 | Aggressive — delivers torque to reach high speeds quickly |
+
+3. **PWM Clamping**
+   ```
+   new_pwm = clamp(current_pwm + gain_adjusted_error, 0, pwm_range)
+   ```
+   `pwm_range` is 1024. The clamp prevents the output from exceeding hardware limits or going negative.
 
 ---
 
 ## 🛠️ Compilation & Usage
 
 ### Prerequisites
-Ensure the `bcm2835` and `BlueZ` libraries are installed on your Raspberry Pi:
+
+Install the `BlueZ` development headers on your Raspberry Pi:
 ```bash
 sudo apt-get update
 sudo apt-get install libbluetooth-dev
+```
+
+The `bcm2835` library must be compiled and installed from source:
+```
+http://www.airspayce.com/mikem/bcm2835/
+```
+
+### Build with Makefile
+```bash
+# Build all sources (C + Assembly) into a single executable
+make
+
+# Run the server (root required for GPIO and Bluetooth access)
+sudo ./motor_server
+```
+
+### Standalone Hardware Test (no Bluetooth)
+```bash
+# Compile and run the local test script directly
+gcc -o basic_motor_control basic_motor_control.c -lbcm2835
+sudo ./basic_motor_control
+```
+
+Use keyboard input in the terminal to test PWM ramp-up, direction switching, and live RPM readout without needing the Android app connected.
