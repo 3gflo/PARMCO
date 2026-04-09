@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:id="@+id/tvConnectionStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Status: Disconnected"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Connect to Raspberry Pi"
+            android:layout_marginBottom="24dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnStartStop"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Start Motor" />
+
+            <Switch
+                android:id="@+id/swReverse"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:paddingStart="16dp"
+                android:text="Reverse"
+                android:textSize="16sp"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#CCCCCC"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Control Mode:"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+
+        <RadioGroup
+            android:id="@+id/rgMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rbManual"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Manual Control"
+                android:checked="true"/>
+
+            <RadioButton
+                android:id="@+id/rbMaintain"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Maintain Current RPM"/>
+
+            <RadioButton
+                android:id="@+id/rbSynced"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Synced Mode (IR Sensor Copy)"/>
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Manual RPM Target:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <Button
+                android:id="@+id/btnMinusRpm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-25" />
+
+            <EditText
+                android:id="@+id/etTargetRpm"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:inputType="number"
+                android:text="0"
+                android:gravity="center"
+                android:textSize="18sp"/>
+
+            <Button
+                android:id="@+id/btnPlusRpm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+25" />
+
+            <Button
+                android:id="@+id/btnSetRpm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Set"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#CCCCCC"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Live Telemetry:"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvIntendedRpm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Intended RPM: 0"
+            android:textSize="16sp"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/tvMeasuredRpm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Measured RPM: 0"
+            android:textSize="16sp"
+            android:textColor="#D32F2F"
+            android:textStyle="bold"/>
+
+    </LinearLayout>
+</ScrollView>
