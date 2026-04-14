@@ -1,5 +1,4 @@
 # Phone APP RP4 Motor Control (PARMCO) 🚁⚙️
-![Generated Video](https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763)
 <p align="center">
   <img src="https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763" alt="animated" />
 </p>
