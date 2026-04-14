@@ -1,4 +1,5 @@
 # Phone APP RP4 Motor Control (PARMCO) 🚁⚙️
+![GeneratedVideoApril132026-9_57PM](https://github.com/user-attachments/assets/f1a47c06-c631-4771-86de-44d01951df93)
 
 [![Raspberry Pi](https://img.shields.io/badge/-Raspberry_Pi-C51A4A?style=for-the-badge&logo=Raspberry-Pi)](https://www.raspberrypi.org/)
 [![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c)](https://en.wikipedia.org/wiki/C_(programming_language))
