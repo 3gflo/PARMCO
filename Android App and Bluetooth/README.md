@@ -4,7 +4,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Bluetooth](https://img.shields.io/badge/-Bluetooth-0082FC?style=for-the-badge&logo=bluetooth)](https://www.bluetooth.com/)
 
-This directory contains the Android frontend application for the **Phone APP RP4 Motor Control (PARMCO)** project. The app provides a complete wireless interface for motor control and live telemetry, communicating over a persistent **Bluetooth Serial Port Profile (SPP)** connection via RFCOMM.
+This directory contains the Android frontend application for the **Phone APP RP4 Motor Control (PARMCO)** project. The app provides a wireless interface for motor control and live telemetry, communicating over a persistent **Bluetooth Serial Port Profile (SPP)** connection via RFCOMM.
 
 ---
 
@@ -12,69 +12,53 @@ This directory contains the Android frontend application for the **Phone APP RP4
 
 | File | Description |
 | :--- | :--- |
-| **`MainActivity.kt`** | Core Kotlin application logic. Handles UI interactions, Bluetooth device discovery, socket lifecycle, and threaded data transmission/reception. |
-| **`activity_main.xml`** | Android XML layout defining the user interface, including connection status, telemetry displays, and motor control inputs. |
+| **`MainActivity.kt`** | **Core Application Logic.** Manages the Bluetooth lifecycle (discovery, bonding, and socket connection), handles UI thread synchronization, and processes bidirectional data streams. |
+| **`activity_main.xml`** | **User Interface Layout.** A scrollable layout containing connection status indicators, motor toggle controls, mode selection (RadioGroups), and live telemetry displays. |
 
 ---
 
 ## 📡 Bluetooth Client Architecture
 
-The application acts as a Bluetooth Client connecting to a remote hardware server. 
+The application acts as a Bluetooth Client connecting to a remote hardware server (such as a Raspberry Pi). 
 
 * **Connection Protocol:** The app utilizes classic Bluetooth (BR/EDR) and connects using the standard SPP UUID: `00001101-0000-1000-8000-00805F9B34FB`.
-* **Thread Management:** All inbound telemetry is processed on a dedicated background thread to prevent UI freezing. The `runOnUiThread` method is utilized to safely push text updates to the screen when new data arrives.
-* **Error Handling:** If the Bluetooth socket drops or throws an `IOException`, the app gracefully catches the error, updates the UI to "Disconnected," and safely closes the streams.
+* **Thread Management:** To ensure a responsive UI, the app initiates the socket connection and the inbound telemetry listener on dedicated background threads. It uses `runOnUiThread` to safely update UI components when data is received.
+* **Discovery & Bonding:** The app includes a built-in discovery mechanism to scan for nearby devices and supports system-level bonding (pairing) directly from the selection dialog.
 
 ---
 
 ## 🗣️ App Communication Protocol
 
-The app parses and transmits plain ASCII strings terminated by a newline (`\n`). 
+The app communicates using plain ASCII strings terminated by a newline (`\n`). 
 
-### App Transmissions (Commands)
-When the user interacts with the UI, the app dispatches the following strings over the Bluetooth socket:
+### Outbound Commands (App → Pi)
+The following commands are dispatched based on user interaction:
 
 | Category | Command String | Triggered By |
 | :--- | :--- | :--- |
 | **Power State** | `STATE:START` <br> `STATE:STOP` | "Start/Stop Motor" Button |
-| **Direction** | `DIR:FORWARD` <br> `DIR:REVERSE` | "Direction: Forward/Reverse" Switch |
+| **Direction** | `DIR:FORWARD` <br> `DIR:REVERSE` | "Reverse" Switch |
 | **Control Mode** | `MODE:MANUAL` <br> `MODE:MAINTAIN` <br> `MODE:SYNCED` | Mode Selection Radio Group |
-| **Throttle** | `RPM:<integer>` | "+50" and "-50" Buttons. <br>*(Note: In Manual mode, this value scales from 0 to 1000 to represent PWM duty cycle).* |
+| **Throttle** | `RPM:<0-1000>` | "Increase/Decrease" Buttons (Steps of 50). |
 
-### App Receptions (Telemetry)
-The app's input stream constantly listens for the following string format to update the Live Dashboard:
+### Inbound Telemetry (Pi → App)
+The app's `listenForData()` loop parses incoming strings to update the dashboard:
 
 | Message Format | Action |
 | :--- | :--- |
-| `MEASURED_RPM:<integer>` | Parses the integer and updates the bold red "Measured RPM" text view. |
-
----
-
-## 📱 Application Interface
-
-The app is designed for quick, accessible control in a lab or testing environment.
-
-* **Device Discovery:** A built-in scanner lists both paired and newly discovered Bluetooth devices. The app triggers standard Android pairing requests if connecting to a new device for the first time.
-* **Safety & State:** A `RadioGroup` ensures only one mode (`MANUAL`, `MAINTAIN`, `SYNCED`) is active at a time, preventing contradictory commands from being sent.
-* **Speed Tuning:** Target speed/PWM is safely bounded between 0 and 1000. It can be stepped up or down in increments of 50 using the large UI buttons.
-* **Live Dashboard:** Provides a clear visual contrast between the *Target PWM* (intended output) and the *Measured RPM* (actual physical state) at a glance.
+| `MEASURED_RPM:<integer>` | Updates the **Measured RPM** text view with the real-time value from the motor sensors. |
 
 ---
 
 ## 🛠️ Setup & Requirements
 
 ### Android Permissions
-
-The app requests Bluetooth permissions dynamically. Depending on the target device's Android version, it requires:
-
-| Android Version | Required Permissions |
-| :--- | :--- |
-| **12+ (API 31+)** | `BLUETOOTH_CONNECT`, `BLUETOOTH_SCAN` |
-| **11 and below** | `ACCESS_FINE_LOCATION` (Required by the Android OS to scan for nearby hardware MAC addresses). |
+The app handles dynamic permission requests. Depending on your Android version, the following are required:
+* **Android 12+ (API 31+):** `BLUETOOTH_CONNECT` and `BLUETOOTH_SCAN`.
+* **Android 11 & Below:** `ACCESS_FINE_LOCATION` (required by Android to access Bluetooth hardware identifiers).
 
 ### Build & Install
-
-1. Open this directory in **Android Studio**.
-2. Allow Gradle to sync the project dependencies.
-3. Connect a physical Android device with Bluetooth capabilities (Emulators do not support Bluetooth hardware).
-4. Build and run the application onto your device.
+1. Open this project directory in **Android Studio**.
+2. Connect a **physical Android device** (Bluetooth is not supported on standard emulators).
+3. Build and deploy the APK to your device.
+4. Use the **"Connect to Pi"** button to pair and establish the RFCOMM link.
