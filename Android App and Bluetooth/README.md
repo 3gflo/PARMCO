@@ -1,12 +1,10 @@
-# 📱 PARMCO: Android Application & Bluetooth Subsystem
+# 📱 PARMCO: Android Application
 
 [![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Bluetooth](https://img.shields.io/badge/-Bluetooth-0082FC?style=for-the-badge&logo=bluetooth)](https://www.bluetooth.com/)
 
-This directory contains the Android application for PARMCO. The app provides a complete wireless interface for motor control and live telemetry, communicating with the Raspberry Pi over a persistent **Bluetooth Serial Port Profile (SPP)** connection via RFCOMM.
-
-For hardware details and a system overview, see the [top-level README](../README.md). For the Pi-side server code, see [`motor-control/`](../motor-control/README.md).
+This directory contains the Android frontend application for the **Phone APP RP4 Motor Control (PARMCO)** project. The app provides a complete wireless interface for motor control and live telemetry, communicating over a persistent **Bluetooth Serial Port Profile (SPP)** connection via RFCOMM.
 
 ---
 
@@ -15,44 +13,40 @@ For hardware details and a system overview, see the [top-level README](../README
 | File | Description |
 | :--- | :--- |
 | **`MainActivity.kt`** | Core Kotlin application logic. Handles UI interactions, Bluetooth device discovery, socket lifecycle, and threaded data transmission/reception. |
-| **`activity_main.xml`** | Android XML layout defining the full user interface. |
-
-> **Note:** `motor_server.c` (the Pi-side RFCOMM server) lives in [`motor-control/`](../motor-control/) and is documented there.
+| **`activity_main.xml`** | Android XML layout defining the user interface, including connection status, telemetry displays, and motor control inputs. |
 
 ---
 
-## 📡 Bluetooth Architecture
+## 📡 Bluetooth Client Architecture
 
-The connection uses classic Bluetooth (BR/EDR) RFCOMM, which emulates a reliable serial cable link between the phone and the Pi.
+The application acts as a Bluetooth Client connecting to a remote hardware server. 
 
-**Server (Raspberry Pi):** The `BlueZ`-based C server binds a listening socket to **Channel 1**. It uses `select()` with a 250ms timeout to run a non-blocking read/write loop — processing any incoming commands while streaming telemetry at ~4Hz regardless of user input.
-
-**Client (Android):** The app connects using the standard SPP UUID: `00001101-0000-1000-8000-00805F9B34FB`. All inbound telemetry is processed on a dedicated background thread, with `runOnUiThread` used to safely push updates to the UI without blocking.
+* **Connection Protocol:** The app utilizes classic Bluetooth (BR/EDR) and connects using the standard SPP UUID: `00001101-0000-1000-8000-00805F9B34FB`.
+* **Thread Management:** All inbound telemetry is processed on a dedicated background thread to prevent UI freezing. The `runOnUiThread` method is utilized to safely push text updates to the screen when new data arrives.
+* **Error Handling:** If the Bluetooth socket drops or throws an `IOException`, the app gracefully catches the error, updates the UI to "Disconnected," and safely closes the streams.
 
 ---
 
-## 🗣️ Communication Protocol
+## 🗣️ App Communication Protocol
 
-All messages are plain ASCII strings terminated by a newline (`\n` or `\r\n`). This is the canonical protocol definition for the entire PARMCO system.
+The app parses and transmits plain ASCII strings terminated by a newline (`\n`). 
 
-### 📱 Android → 🍓 Raspberry Pi (Commands)
+### App Transmissions (Commands)
+When the user interacts with the UI, the app dispatches the following strings over the Bluetooth socket:
 
-| Category | Command String | Description |
+| Category | Command String | Triggered By |
 | :--- | :--- | :--- |
-| **Power State** | `STATE:START` | Energizes the motor system. |
-| | `STATE:STOP` | Immediately cuts power (target RPM → 0). |
-| **Direction** | `DIR:FORWARD` | Sets H-Bridge IN1 HIGH / IN2 LOW (clockwise). |
-| | `DIR:REVERSE` | Sets H-Bridge IN1 LOW / IN2 HIGH (counter-clockwise). |
-| **Control Mode** | `MODE:MANUAL` | Open-loop: PWM maps directly to target value. |
-| | `MODE:MAINTAIN` | Closed-loop: Assembly PID holds a specific RPM. |
-| | `MODE:SYNCED` | Closed-loop: Matches RPM to a secondary IR sensor. |
-| **Throttle** | `RPM:<integer>` | Sets target speed in RPM (e.g., `RPM:1500`). |
+| **Power State** | `STATE:START` <br> `STATE:STOP` | "Start/Stop Motor" Button |
+| **Direction** | `DIR:FORWARD` <br> `DIR:REVERSE` | "Direction: Forward/Reverse" Switch |
+| **Control Mode** | `MODE:MANUAL` <br> `MODE:MAINTAIN` <br> `MODE:SYNCED` | Mode Selection Radio Group |
+| **Throttle** | `RPM:<integer>` | "+50" and "-50" Buttons. <br>*(Note: In Manual mode, this value scales from 0 to 1000 to represent PWM duty cycle).* |
 
-### 🍓 Raspberry Pi → 📱 Android (Telemetry)
+### App Receptions (Telemetry)
+The app's input stream constantly listens for the following string format to update the Live Dashboard:
 
-| Message Format | Description |
+| Message Format | Action |
 | :--- | :--- |
-| `MEASURED_RPM:<integer>` | Live RPM calculated from IR sensor pulse counting, streamed at ~4Hz. |
+| `MEASURED_RPM:<integer>` | Parses the integer and updates the bold red "Measured RPM" text view. |
 
 ---
 
@@ -60,15 +54,10 @@ All messages are plain ASCII strings terminated by a newline (`\n` or `\r\n`). T
 
 The app is designed for quick, accessible control in a lab or testing environment.
 
-**Device Discovery:** A built-in scanner lists both paired and newly discovered Bluetooth devices. The app handles the initial pairing bond handshake automatically when connecting to a new Pi.
-
-**Directional Control:** A toggle switch for instant CW/CCW switching, sending `DIR:FORWARD` or `DIR:REVERSE` on change.
-
-**Mode Selection:** A `RadioGroup` ensures only one mode (`MANUAL`, `MAINTAIN`, `SYNCED`) is active at a time, preventing contradictory state commands.
-
-**Speed Tuning:** Target RPM can be incremented/decremented in steps of 25 via +/− buttons, or typed directly via the numeric keypad. Both paths dispatch a `RPM:<value>` command.
-
-**Live Dashboard:** The measured RPM readout is displayed in bold red, making it easy to compare the actual physical state against the target at a glance.
+* **Device Discovery:** A built-in scanner lists both paired and newly discovered Bluetooth devices. The app triggers standard Android pairing requests if connecting to a new device for the first time.
+* **Safety & State:** A `RadioGroup` ensures only one mode (`MANUAL`, `MAINTAIN`, `SYNCED`) is active at a time, preventing contradictory commands from being sent.
+* **Speed Tuning:** Target speed/PWM is safely bounded between 0 and 1000. It can be stepped up or down in increments of 50 using the large UI buttons.
+* **Live Dashboard:** Provides a clear visual contrast between the *Target PWM* (intended output) and the *Measured RPM* (actual physical state) at a glance.
 
 ---
 
@@ -76,27 +65,16 @@ The app is designed for quick, accessible control in a lab or testing environmen
 
 ### Android Permissions
 
-The required permissions vary by Android version:
+The app requests Bluetooth permissions dynamically. Depending on the target device's Android version, it requires:
 
 | Android Version | Required Permissions |
 | :--- | :--- |
 | **12+ (API 31+)** | `BLUETOOTH_CONNECT`, `BLUETOOTH_SCAN` |
-| **11 and below** | `ACCESS_FINE_LOCATION` (needed to scan hardware MAC addresses) |
+| **11 and below** | `ACCESS_FINE_LOCATION` (Required by the Android OS to scan for nearby hardware MAC addresses). |
 
 ### Build & Install
 
-Open the `android-app/` directory in **Android Studio**, let Gradle sync, then build and install on a Bluetooth-capable device.
-
-### Testing the Server Without Hardware
-
-You can validate the Android connection and UI behaviour without any motor hardware attached by running the server in isolation on the Pi:
-
-```bash
-# Compile the Bluetooth server only (no bcm2835 dependency)
-gcc -o motor_server motor_server.c -lbluetooth
-
-# Run the server
-sudo ./motor_server
-```
-
-The server will accept the app's connection and respond to all commands, making it straightforward to test mode switching, RPM input, and telemetry display before the physical circuit is wired.
+1. Open this directory in **Android Studio**.
+2. Allow Gradle to sync the project dependencies.
+3. Connect a physical Android device with Bluetooth capabilities (Emulators do not support Bluetooth hardware).
+4. Build and run the application onto your device.
