@@ -1,6 +1,8 @@
 # Phone APP RP4 Motor Control (PARMCO) 🚁⚙️
 ![Generated Video](https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763)
-
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763" alt="animated" />
+</p>
 [![Raspberry Pi](https://img.shields.io/badge/-Raspberry_Pi-C51A4A?style=for-the-badge&logo=Raspberry-Pi)](https://www.raspberrypi.org/)
 [![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c)](https://en.wikipedia.org/wiki/C_(programming_language))
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
