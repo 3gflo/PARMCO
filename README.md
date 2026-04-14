@@ -2,11 +2,6 @@
 <p align="center">
   <img src="https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763" alt="animated" />
 </p>
-[![Raspberry Pi](https://img.shields.io/badge/-Raspberry_Pi-C51A4A?style=for-the-badge&logo=Raspberry-Pi)](https://www.raspberrypi.org/)
-[![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c)](https://en.wikipedia.org/wiki/C_(programming_language))
-[![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![Bluetooth](https://img.shields.io/badge/-Bluetooth-0082FC?style=for-the-badge&logo=bluetooth)](https://www.bluetooth.com/)
-[![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)]()
 
 **PARMCO** is a full-stack embedded engineering project bridging mobile application development with low-level C hardware control. A Raspberry Pi 4 runs a C/Assembly backend that drives a 12V DC motor via an L293D H-Bridge, while a Kotlin Android app connects over Bluetooth RFCOMM to provide wireless control and live RPM telemetry.
 
