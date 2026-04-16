@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARMCO | Full-Stack Motor Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+
+    <header class="bg-slate-900 text-white py-20 px-6 text-center">
+        <h1 class="text-5xl font-bold mb-4">PARMCO</h1>
+        <p class="text-xl text-slate-400 max-w-2xl mx-auto">Phone APP RP4 Motor Control: A complete vertical slice of embedded systems engineering, from Kotlin UI to ARM Assembly.</p>
+        <div class="mt-8">
+            <div class="w-64 h-64 mx-auto bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-700 shadow-xl overflow-hidden">
+                <span class="text-slate-500">[ Helicopter GIF Goes Here ]</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="max-w-5xl mx-auto py-16 px-6">
+        <h2 class="text-3xl font-bold border-b-4 border-indigo-500 inline-block mb-8">System Architecture</h2>
+        <p class="text-lg text-slate-600 mb-10">PARMCO isn't just a motor controller; it's a demonstration of how disparate technologies—Android mobile apps, Bluetooth RFCOMM stacks, Linux C servers, and ARM Assembly—integrate into a single, cohesive feedback loop.</p>
+        
+        
+    </section>
+
+    <section class="bg-white py-16 px-6 shadow-inner">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-3xl font-bold mb-12 text-center">The Journey of a Command</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="p-6 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="font-bold text-indigo-600 mb-2">1. The Trigger</h3>
+                    <p class="text-sm">User adjusts PWM on the <b>Kotlin</b> Android App. A formatted ASCII string (e.g., <code>RPM:750</code>) is sent via Bluetooth RFCOMM.</p>
+                </div>
+                <div class="p-6 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="font-bold text-indigo-600 mb-2">2. The Logic</h3>
+                    <p class="text-sm">A <b>C Server</b> on the Raspberry Pi receives the packet. It hands off the Target vs. Actual RPM to an <b>ARM Assembly</b> routine for high-speed error calculation.</p>
+                </div>
+                <div class="p-6 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="font-bold text-indigo-600 mb-2">3. The Action</h3>
+                    <p class="text-sm">The <b>L293D H-Bridge</b> drives the 12V motor. An <b>IR Sensor</b> counts blade rotations, sending live telemetry back to the phone at 4Hz.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto py-16 px-6">
+        <h2 class="text-3xl font-bold mb-8">The Tech Stack</h2>
+        <div class="flex flex-wrap gap-4 mb-12">
+            <span class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full font-semibold">Kotlin</span>
+            <span class="px-4 py-2 bg-slate-200 text-slate-700 rounded-full font-semibold">C (BlueZ)</span>
+            <span class="px-4 py-2 bg-orange-100 text-orange-700 rounded-full font-semibold">ARM Assembly</span>
+            <span class="px-4 py-2 bg-red-100 text-red-700 rounded-full font-semibold">Raspberry Pi 4</span>
+            <span class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full font-semibold">Bluetooth RFCOMM</span>
+        </div>
+        
+        <div class="bg-slate-900 rounded-lg p-6 overflow-x-auto shadow-2xl">
+            <h4 class="text-slate-400 text-xs uppercase tracking-widest mb-4">Core Assembly Logic (control.S)</h4>
+            <pre class="text-green-400 font-mono text-sm">
+adjust_pwm:
+    sub r1, r1, r0      // Calculate Error (Target - Current)
+    cmp r1, #1500
+    blt gentle_gain
+    asr r1, r1, #4      // Aggressive Gain for high speeds
+    b apply_pwm</pre>
+        </div>
+    </section>
+
+    <footer class="bg-slate-900 text-slate-500 py-12 text-center border-t border-slate-800">
+        <p>Project PARMCO &copy; 2026</p>
+        <a href="https://github.com/YOUR_USERNAME/PARMCO" class="text-indigo-400 hover:text-white underline mt-4 inline-block">View Full Source Code on GitHub</a>
+    </footer>
+
+</body>
+</html>
