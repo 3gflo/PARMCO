@@ -1,10 +1,7 @@
-# Phone APP RP4 Motor Control (PARMCO) 🚁⚙️
-
-[![Raspberry Pi](https://img.shields.io/badge/-Raspberry_Pi-C51A4A?style=for-the-badge&logo=Raspberry-Pi)](https://www.raspberrypi.org/)
-[![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c)](https://en.wikipedia.org/wiki/C_(programming_language))
-[![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![Bluetooth](https://img.shields.io/badge/-Bluetooth-0082FC?style=for-the-badge&logo=bluetooth)](https://www.bluetooth.com/)
-[![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)]()
+<center> <h1>Phone App RP4 Motor Control (PARMCO) 🚁⚙️</h1> </center>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763" alt="animated" />
+</p>
 
 **PARMCO** is a full-stack embedded engineering project bridging mobile application development with low-level C hardware control. A Raspberry Pi 4 runs a C/Assembly backend that drives a 12V DC motor via an L293D H-Bridge, while a Kotlin Android app connects over Bluetooth RFCOMM to provide wireless control and live RPM telemetry.
 
@@ -12,95 +9,66 @@ The system supports both **open-loop manual control** and **closed-loop automati
 
 ---
 
-## 📋 Table of Contents
-1. [Repository Structure](#-repository-structure)
-2. [Hardware Architecture & Circuit](#-hardware-architecture--circuit)
-3. [System Overview](#-system-overview)
-4. [Quick Start](#-quick-start)
+## 🚀 System Overview
+
+The system architecture consists of a high-performance C server running on the Raspberry Pi and a Kotlin-based Android application. The two communicate via the **Bluetooth Serial Port Profile (SPP)**.
+
+### Key Features
+* **Low-Latency Control:** Non-blocking RFCOMM server for instantaneous motor response.
+* **Precision PWM:** Hardware-level Pulse Width Modulation for smooth speed control (0–1000 range).
+* **Live Telemetry:** High-speed IR sensor polling (10 kHz) to calculate and transmit real-time RPM.
+* **Safety Integration:** Automatic hardware shutdown on Bluetooth disconnection.
 
 ---
 
-## 📁 Repository Structure
+## 📁 Project Structure
 
-```
-PARMCO/
-├── README.md                   ← You are here
-├── motor-control/              ← Raspberry Pi C/Assembly backend
-│   └── README.md
-└── android-app/                ← Android Kotlin application
-    └── README.md
-```
+The project is organized into two primary functional layers:
 
-* **[`motor-control/`](./motor-control/README.md)** — All Raspberry Pi software: PWM generation, IR sensor polling, ARM Assembly PID controller, and GPIO pin mappings.
-* **[`android-app/`](./android-app/README.md)** — The Android application, Bluetooth architecture, full communication protocol, and setup instructions.
+| Component | Primary Files | Responsibility |
+| :--- | :--- | :--- |
+| **Firmware (C)** | bt_motor_control.c | GPIO management, hardware PWM, IR polling, and BT server logic. |
+| **Mobile App (Kotlin)** | MainActivity.kt, activity_main.xml | Bluetooth client lifecycle, UI event handling, and telemetry visualization. |
+| **Documentation** | MOTOR_README.md, ANDROID_README.md | Specific setup instructions for each subsystem. |
+| **Hardware** | image_a9dc87.jpg | Schematic for L298N/L293D H-Bridge and IR sensor wiring. |
 
 ---
 
-## 🔌 Hardware Architecture & Circuit
+## 🔌 Hardware Configuration
 
-The physical system isolates the low-voltage logic of the Raspberry Pi from the high-current demands of the motor using a dedicated driver IC.
+The system relies on a Raspberry Pi connected to an H-Bridge motor driver and an optical encoder. For detailed wiring, refer to the **Hardware Schematic (image_a9dc87.jpg)**.
 
-### Core Components
-
-| Component | Role |
-| :--- | :--- |
-| **Raspberry Pi 4 Model B** | Logic, control loop, and Bluetooth server |
-| **12V DC Motor with Propeller** | Actuator (3-blade, used for RPM encoding) |
-| **L293D Motor Driver IC** | H-Bridge for bi-directional motor control |
-| **IR Obstacle Avoidance Sensor** | RPM encoder via propeller blade pulse counting |
-| **IRFZ34N N-Channel MOSFET** | Visual directional state indicator (LED driver) |
-| **5V DC supply** | Logic power for the Raspberry Pi |
-| **12V DC supply** | Motor power, isolated from logic rail |
-
-### Circuit Analysis
-
-**Speed Control (PWM → L293D EN1):** The RP4 generates a hardware PWM signal sent to the `EN1` (Enable) pin of the L293D. Modulating the duty cycle controls the average voltage delivered to the motor, and therefore its speed.
-
-**Direction Control (GPIO → L293D IN1/IN2):** Two GPIO pins connect to `IN1` and `IN2`. Setting `IN1` HIGH / `IN2` LOW drives the motor forward; reversing the states reverses the motor.
-
-**RPM Feedback (IR Sensor → GPIO 25):** The IR sensor's beam reflects off the propeller blades, triggering a falling-edge interrupt on GPIO 25. Pulses are counted over a 1-second window and converted to RPM:
-
-$$RPM = (\text{Pulse Count} \times 60) / 3$$
-
-**Direction Indicator (L293D OUT2 → MOSFET gate):** When the H-Bridge's `OUT2` rail goes high, it triggers the IRFZ34N gate, sinking current through a 470Ω LED circuit as a hardware-level visual indicator of motor direction.
-
-> **Pin Mapping Note:** There is an intentional discrepancy between the schematic and the final software. See [`motor-control/README.md`](./motor-control/README.md) for the definitive BCM GPIO pin assignments used in the code.
+### BCM GPIO Mapping
+* **Pin 18:** PWM Speed Control (Alt5)
+* **Pin 23 & 24:** H-Bridge Directional Logic
+* **Pin 25:** IR Encoder Input
 
 ---
 
-## 🧩 System Overview
+## 📡 Communication Protocol
 
-```
-  [Android App]  ──── Bluetooth RFCOMM ────  [Raspberry Pi 4]
-       │                                            │
-  Kotlin UI                                    C/ASM Backend
-  - Mode select                                - BCM2835 PWM
-  - Target RPM input                           - GPIO H-Bridge control
-  - Live RPM display  ◄── MEASURED_RPM ──────  - IR pulse counting
-                       ──── Commands ─────────  - PID (ARM Assembly)
-```
+Data is exchanged as ASCII strings terminated by a newline (\n).
 
-The Android app sends ASCII commands (e.g., `RPM:1500`, `MODE:MAINTAIN`) over a persistent RFCOMM socket. The Pi parses these, drives the motor accordingly, and streams back `MEASURED_RPM:<value>` at 4Hz. See [`android-app/README.md`](./android-app/README.md) for the full protocol definition.
+### App to Pi (Commands)
+* STATE:START / STATE:STOP - Power toggle.
+* DIR:FORWARD / DIR:REVERSE - H-Bridge polarity switch.
+* RPM:[0-1000] - Sets the PWM duty cycle.
+
+### Pi to App (Telemetry)
+* MEASURED_RPM:[value] - Real-time speed updates sent every second.
 
 ---
 
-## 🚀 Quick Start
+## 🛠️ Quick Start
 
-### Raspberry Pi — Install Dependencies
-```bash
-sudo apt-get update
-sudo apt-get install libbluetooth-dev
-# bcm2835 library must be built from source: http://www.airspayce.com/mikem/bcm2835/
-```
+1.  **Prepare the Pi:** Install the `bcm2835` and `libbluetooth-dev` libraries.
+2.  **Compile & Run:**
+    gcc bt_motor_control.c -o bt_motor -lbcm2835 -lbluetooth
+    sudo ./bt_motor
+3.  **Mobile Setup:** Build the Android project in Android Studio and deploy to a physical device.
+4.  **Connect:** Open the app, click "Connect to Pi", and select your Raspberry Pi from the discovered devices list.
 
-### Build & Run
-```bash
-cd motor-control/
-make
-sudo ./motor_server
-```
+---
 
-For detailed compilation options, Makefile targets, and standalone hardware testing, see [`motor-control/README.md`](./motor-control/README.md).
-
-### Android App
-Open the `android-app/` directory in Android Studio, build, and install on a Bluetooth-capable Android device. See [`android-app/README.md`](./android-app/README.md) for permission requirements and pairing instructions.
+> [!IMPORTANT]
+> Always ensure the Raspberry Pi server is running with sudo privileges to allow direct access to the hardware registers and Bluetooth stack.

@@ -1,12 +1,10 @@
-# 📱 PARMCO: Android Application & Bluetooth Subsystem
+# 📱 PARMCO: Android Application
 
 [![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Bluetooth](https://img.shields.io/badge/-Bluetooth-0082FC?style=for-the-badge&logo=bluetooth)](https://www.bluetooth.com/)
 
-This directory contains the Android application for PARMCO. The app provides a complete wireless interface for motor control and live telemetry, communicating with the Raspberry Pi over a persistent **Bluetooth Serial Port Profile (SPP)** connection via RFCOMM.
-
-For hardware details and a system overview, see the [top-level README](../README.md). For the Pi-side server code, see [`motor-control/`](../motor-control/README.md).
+This directory contains the Android frontend application for the **Phone APP RP4 Motor Control (PARMCO)** project. The app provides a wireless interface for motor control and live telemetry, communicating over a long-lived **Bluetooth Serial Port Profile (SPP)** connection via RFCOMM. Note that there is currently no automatic reconnect — if the socket drops, the user must tap **Connect to Pi** again.
 
 ---
 
@@ -14,89 +12,70 @@ For hardware details and a system overview, see the [top-level README](../README
 
 | File | Description |
 | :--- | :--- |
-| **`MainActivity.kt`** | Core Kotlin application logic. Handles UI interactions, Bluetooth device discovery, socket lifecycle, and threaded data transmission/reception. |
-| **`activity_main.xml`** | Android XML layout defining the full user interface. |
-
-> **Note:** `motor_server.c` (the Pi-side RFCOMM server) lives in [`motor-control/`](../motor-control/) and is documented there.
+| **`MainActivity.kt`** | **Core Application Logic.** Manages the Bluetooth lifecycle (discovery, bonding, and socket connection), handles UI thread synchronization, and processes bidirectional data streams. |
+| **`activity_main.xml`** | **User Interface Layout.** A vertical `ScrollView` containing (top to bottom): connection status text, Connect button, Start/Stop button paired with a Reverse switch, a single mode-selection `RadioGroup` (Manual / Maintain / Synced — defaults to Manual on launch), a manual speed panel with Decrease/Increase (±50) buttons, and a live telemetry section showing the locally-tracked **Intended PWM** (`tvIntendedPwm`) and the sensor-reported **Measured RPM** (`tvMeasuredRpm`, styled in bold red as the primary readout). |
 
 ---
 
-## 📡 Bluetooth Architecture
+## 📡 Bluetooth Client Architecture
 
-The connection uses classic Bluetooth (BR/EDR) RFCOMM, which emulates a reliable serial cable link between the phone and the Pi.
+The application acts as a Bluetooth Client connecting to a remote hardware server (such as a Raspberry Pi). 
 
-**Server (Raspberry Pi):** The `BlueZ`-based C server binds a listening socket to **Channel 1**. It uses `select()` with a 250ms timeout to run a non-blocking read/write loop — processing any incoming commands while streaming telemetry at ~4Hz regardless of user input.
-
-**Client (Android):** The app connects using the standard SPP UUID: `00001101-0000-1000-8000-00805F9B34FB`. All inbound telemetry is processed on a dedicated background thread, with `runOnUiThread` used to safely push updates to the UI without blocking.
+* **Connection Protocol:** The app utilizes classic Bluetooth (BR/EDR) and connects using the standard SPP UUID: `00001101-0000-1000-8000-00805F9B34FB`.
+* **Thread Management:** To ensure a responsive UI, the app initiates the socket connection and the inbound telemetry listener on dedicated background threads. It uses `runOnUiThread` to safely update UI components when data is received.
+* **Discovery & Bonding:** The app includes a built-in discovery mechanism to scan for nearby devices and supports system-level bonding (pairing) directly from the selection dialog.
 
 ---
 
-## 🗣️ Communication Protocol
+## 🗣️ App Communication Protocol
 
-All messages are plain ASCII strings terminated by a newline (`\n` or `\r\n`). This is the canonical protocol definition for the entire PARMCO system.
+The app communicates using plain ASCII strings terminated by a newline (`\n`). 
 
-### 📱 Android → 🍓 Raspberry Pi (Commands)
+### Outbound Commands (App → Pi)
+The following commands are dispatched based on user interaction:
 
-| Category | Command String | Description |
+| Category | Command String | Triggered By |
 | :--- | :--- | :--- |
-| **Power State** | `STATE:START` | Energizes the motor system. |
-| | `STATE:STOP` | Immediately cuts power (target RPM → 0). |
-| **Direction** | `DIR:FORWARD` | Sets H-Bridge IN1 HIGH / IN2 LOW (clockwise). |
-| | `DIR:REVERSE` | Sets H-Bridge IN1 LOW / IN2 HIGH (counter-clockwise). |
-| **Control Mode** | `MODE:MANUAL` | Open-loop: PWM maps directly to target value. |
-| | `MODE:MAINTAIN` | Closed-loop: Assembly PID holds a specific RPM. |
-| | `MODE:SYNCED` | Closed-loop: Matches RPM to a secondary IR sensor. |
-| **Throttle** | `RPM:<integer>` | Sets target speed in RPM (e.g., `RPM:1500`). |
+| **Power State** | `STATE:START` <br> `STATE:STOP` | "Start/Stop Motor" Button (single toggle) |
+| **Direction** | `DIR:FORWARD` <br> `DIR:REVERSE` | "Reverse" Switch (unchecked → FORWARD, checked → REVERSE) |
+| **Control Mode** | `MODE:MANUAL` <br> `MODE:MAINTAIN` <br> `MODE:SYNCED` | Mode Selection Radio Group |
+| **Throttle** | `RPM:<0-1000>` | "Increase/Decrease" Buttons (Steps of 50). **Only sent in MANUAL mode.** |
 
-### 🍓 Raspberry Pi → 📱 Android (Telemetry)
+> ⚠️ **Cross-component note:** The `MODE:*` commands are currently **silently ignored by the Raspberry Pi server** — mode behavior is entirely client-side UI state. The commands are sent for forward compatibility, but selecting a mode today only changes what the app allows the user to do, not what the Pi does. See the Motor Control README for details on which commands the Pi actually acts on.
 
-| Message Format | Description |
+### Client-Side Mode Behavior
+The three modes change what the app allows the user to do locally:
+
+| Mode | +/- RPM Buttons | On Selection |
+| :--- | :--- | :--- |
+| **MANUAL** | Enabled | Sends `MODE:MANUAL`, then immediately re-sends current `RPM:<value>` to resync the Pi's PWM. |
+| **MAINTAIN** | Disabled (greyed out) | Sends `MODE:MAINTAIN`. Intended for closed-loop speed hold (server-side logic not yet implemented). |
+| **SYNCED** | Disabled (greyed out) | Sends `MODE:SYNCED`. Intended for external-sensor-driven control (server-side logic not yet implemented). |
+
+### Inbound Telemetry (Pi → App)
+The app's `listenForData()` loop parses incoming strings to update the dashboard:
+
+| Message Format | Action |
 | :--- | :--- |
-| `MEASURED_RPM:<integer>` | Live RPM calculated from IR sensor pulse counting, streamed at ~4Hz. |
-
----
-
-## 📱 Application Interface
-
-The app is designed for quick, accessible control in a lab or testing environment.
-
-**Device Discovery:** A built-in scanner lists both paired and newly discovered Bluetooth devices. The app handles the initial pairing bond handshake automatically when connecting to a new Pi.
-
-**Directional Control:** A toggle switch for instant CW/CCW switching, sending `DIR:FORWARD` or `DIR:REVERSE` on change.
-
-**Mode Selection:** A `RadioGroup` ensures only one mode (`MANUAL`, `MAINTAIN`, `SYNCED`) is active at a time, preventing contradictory state commands.
-
-**Speed Tuning:** Target RPM can be incremented/decremented in steps of 25 via +/− buttons, or typed directly via the numeric keypad. Both paths dispatch a `RPM:<value>` command.
-
-**Live Dashboard:** The measured RPM readout is displayed in bold red, making it easy to compare the actual physical state against the target at a glance.
+| `MEASURED_RPM:<integer>` | Updates the **Measured RPM** text view with the real-time value from the motor sensors. |
 
 ---
 
 ## 🛠️ Setup & Requirements
 
 ### Android Permissions
-
-The required permissions vary by Android version:
-
-| Android Version | Required Permissions |
-| :--- | :--- |
-| **12+ (API 31+)** | `BLUETOOTH_CONNECT`, `BLUETOOTH_SCAN` |
-| **11 and below** | `ACCESS_FINE_LOCATION` (needed to scan hardware MAC addresses) |
+The app handles dynamic permission requests. Depending on your Android version, the following are required:
+* **Android 12+ (API 31+):** `BLUETOOTH_CONNECT` and `BLUETOOTH_SCAN`.
+* **Android 11 & Below:** `ACCESS_FINE_LOCATION` (required by Android to access Bluetooth hardware identifiers).
 
 ### Build & Install
+1. Open this project directory in **Android Studio**.
+2. Connect a **physical Android device** (Bluetooth is not supported on standard emulators).
+3. Build and deploy the APK to your device.
+4. Tap **"Connect to Pi"** to open the device selection dialog. Previously paired devices appear immediately; nearby unpaired devices populate as they are discovered.
+5. **First-time pairing:** If you select an unpaired device, the app triggers an Android bond request and shows a toast instructing you to tap **Connect to Pi** a second time once pairing completes. This is a known two-tap UX quirk — subsequent launches connect in one tap since the device is already bonded.
 
-Open the `android-app/` directory in **Android Studio**, let Gradle sync, then build and install on a Bluetooth-capable device.
-
-### Testing the Server Without Hardware
-
-You can validate the Android connection and UI behaviour without any motor hardware attached by running the server in isolation on the Pi:
-
-```bash
-# Compile the Bluetooth server only (no bcm2835 dependency)
-gcc -o motor_server motor_server.c -lbluetooth
-
-# Run the server
-sudo ./motor_server
-```
-
-The server will accept the app's connection and respond to all commands, making it straightforward to test mode switching, RPM input, and telemetry display before the physical circuit is wired.
+### Connection Lifecycle
+* The RFCOMM socket and the inbound `listenForData()` loop run on a dedicated background thread.
+* If the socket drops (read `IOException`), the status text updates to **"Disconnected"** and the listener thread exits. There is no automatic reconnect — the user must tap **Connect to Pi** again.
+* On `onDestroy()`, the app closes the socket and unregisters the device-discovery `BroadcastReceiver`.
