@@ -6,11 +6,12 @@
     <title>PARMCO - Android Application Details</title>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --text-color: #c9d1d9;
-            --accent-color: #58a6ff;
-            --card-bg: #161b22;
-            --border-color: #30363d;
+            --bg-color: #021812; /* Deep dark green */
+            --text-color: #d1f0e5;
+            --accent-color: #00ff9d; /* Neon mint */
+            --card-bg: #072e21;
+            --border-color: #10523d;
+            --nav-bg: #01120d;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -21,7 +22,7 @@
             padding: 0;
         }
         nav {
-            background-color: #010409;
+            background-color: var(--nav-bg);
             padding: 1rem 2rem;
             border-bottom: 1px solid var(--border-color);
         }
@@ -29,15 +30,18 @@
             color: var(--accent-color);
             text-decoration: none;
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         nav a:hover {
             text-decoration: underline;
+            text-shadow: 0 0 8px var(--accent-color);
         }
         header {
             background-color: var(--card-bg);
             padding: 4rem 2rem;
             text-align: center;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 2px solid var(--accent-color);
         }
         header h1 {
             color: #ffffff;
@@ -48,7 +52,7 @@
             font-size: 1.2rem;
             max-width: 800px;
             margin: 0 auto;
-            color: #8b949e;
+            color: #8bd4b6;
         }
         .container {
             max-width: 1000px;
@@ -81,7 +85,8 @@
             padding-left: 1.5rem;
         }
         code {
-            background-color: rgba(110, 118, 129, 0.4);
+            background-color: rgba(0, 255, 157, 0.15);
+            color: var(--accent-color);
             padding: 0.2em 0.4em;
             border-radius: 6px;
             font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
@@ -91,6 +96,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 1rem;
+            background-color: var(--card-bg);
         }
         table, th, td {
             border: 1px solid var(--border-color);
@@ -100,15 +106,15 @@
             text-align: left;
         }
         th {
-            background-color: var(--card-bg);
-            color: #ffffff;
+            background-color: #0b4532;
+            color: var(--accent-color);
         }
         footer {
             text-align: center;
             padding: 2rem;
             margin-top: 4rem;
             border-top: 1px solid var(--border-color);
-            color: #8b949e;
+            color: #558c73;
         }
     </style>
 </head>
@@ -148,7 +154,7 @@
                 </div>
                 <div class="card">
                     <h3>Live Telemetry</h3>
-                    <p>The bottom of the screen features dedicated text views for intended PWM, Measured RPM (styled in bold red), and External RPM (styled in bold blue).</p>
+                    <p>The bottom of the screen features dedicated text views for intended PWM, Measured RPM, and External RPM, dynamically updating via the background parser.</p>
                 </div>
             </div>
         </section>

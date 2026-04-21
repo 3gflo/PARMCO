@@ -6,11 +6,14 @@
     <title>PARMCO - Phone App RP4 Motor Control</title>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --text-color: #c9d1d9;
-            --accent-color: #58a6ff;
-            --card-bg: #161b22;
-            --border-color: #30363d;
+            --bg-color: #120422; /* Deep dark purple */
+            --text-color: #e2d9eb;
+            --accent-color: #05d9e8; /* Neon cyan */
+            --card-bg: #210b3a;
+            --border-color: #431c6a;
+            --btn-bg: #ff2a6d; /* Neon pink */
+            --btn-hover: #d91c5c;
+            --nav-bg: #0d0218;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -20,11 +23,36 @@
             margin: 0;
             padding: 0;
         }
+        
+        /* --- NEW TOP NAVIGATION BAR --- */
+        nav {
+            background-color: var(--nav-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+        }
+        nav a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-size: 0.9rem;
+            transition: color 0.2s, text-shadow 0.2s;
+        }
+        nav a:hover {
+            color: #ffffff;
+            text-shadow: 0 0 10px var(--accent-color);
+        }
+
         header {
             background-color: var(--card-bg);
             padding: 4rem 2rem;
             text-align: center;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 2px solid var(--accent-color);
         }
         .hero-image {
             width: 16rem;
@@ -32,8 +60,8 @@
             display: block;
             margin: 0 auto 2rem auto;
             border-radius: 50%;
-            border: 4px solid #334155;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 4px solid var(--accent-color);
+            box-shadow: 0 0 25px rgba(5, 217, 232, 0.4);
             object-fit: cover;
             background-color: #1e293b;
         }
@@ -41,27 +69,29 @@
             color: #ffffff;
             font-size: 3rem;
             margin: 0 0 1rem 0;
+            text-shadow: 0 0 10px rgba(5, 217, 232, 0.5);
         }
         header p {
             font-size: 1.2rem;
             max-width: 800px;
             margin: 0 auto;
-            color: #8b949e;
+            color: #bfa8d4;
         }
         .github-btn {
             display: inline-block;
             margin-top: 1.5rem;
             padding: 0.75rem 1.5rem;
-            background-color: #238636;
+            background-color: var(--btn-bg);
             color: #ffffff;
             text-decoration: none;
             font-weight: bold;
             border-radius: 6px;
-            border: 1px solid rgba(240, 246, 252, 0.1);
-            transition: background-color 0.2s;
+            box-shadow: 0 0 15px rgba(255, 42, 109, 0.5);
+            transition: background-color 0.2s, transform 0.2s;
         }
         .github-btn:hover {
-            background-color: #2ea043;
+            background-color: var(--btn-hover);
+            transform: scale(1.05);
         }
         .container {
             max-width: 1000px;
@@ -85,6 +115,7 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 1.5rem;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
         }
         .card h3 {
             margin-top: 0;
@@ -96,14 +127,16 @@
             display: block;
             margin: 2rem auto;
             border-radius: 8px;
-            border: 1px solid var(--border-color);
+            border: 2px solid var(--accent-color);
             background-color: #ffffff;
+            box-shadow: 0 0 20px rgba(5, 217, 232, 0.2);
         }
         ul {
             padding-left: 1.5rem;
         }
         code {
-            background-color: rgba(110, 118, 129, 0.4);
+            background-color: rgba(5, 217, 232, 0.15);
+            color: #7df9ff;
             padding: 0.2em 0.4em;
             border-radius: 6px;
             font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
@@ -116,9 +149,26 @@
             border-top: 1px solid var(--border-color);
             color: #8b949e;
         }
+        .nav-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--btn-bg);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+            color: #ff5c8d;
+        }
     </style>
 </head>
 <body>
+
+    <nav>
+        <a href="index.html" style="color: #ffffff; text-shadow: 0 0 10px var(--accent-color);">Home / Overview</a>
+        <a href="app.html">Android App Details 📱</a>
+        <a href="motor.html">RP4 Motor Control Details ⚙️</a>
+    </nav>
 
     <header>
         <img src="https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763" 
@@ -165,7 +215,7 @@
                         <li>Spawns a dedicated background thread for the Bluetooth socket connection and telemetry listener.</li>
                         <li>Receives and parses <code>MEASURED_RPM</code> and <code>EXTERNAL_RPM</code> data from the Pi once per second to update the UI.</li>
                     </ul>
-                    <a href="app.html" style="display: inline-block; margin-top: 1rem; color: var(--accent-color); text-decoration: none; font-weight: bold;">View App Implementation Details →</a>
+                    <a href="app.html" class="nav-link">View App Implementation Details →</a>
                 </div>
                 <div class="card">
                     <h3>Raspberry Pi Backend (C/ASM)</h3>
@@ -174,7 +224,7 @@
                         <li><code>feedback.S</code> is a 32-bit ARM assembly function implementing the adaptive proportional controller.</li>
                         <li>A headless systemd service (<code>bluetooth-agent.service</code>) allows the Pi to auto-accept Bluetooth pairings without user intervention.</li>
                     </ul>
-                    <a href="motor.html" style="display: inline-block; margin-top: 1rem; color: var(--accent-color); text-decoration: none; font-weight: bold;">View RP4 Motor Control Details →</a>
+                    <a href="motor.html" class="nav-link">View RP4 Motor Control Details →</a>
                 </div>
             </div>
         </section>
