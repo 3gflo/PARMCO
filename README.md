@@ -38,6 +38,8 @@ The project is organized into two primary functional layers, each with its own R
 
 The system relies on a Raspberry Pi 4 connected to an L293D H-Bridge motor driver and IR optical encoder sensors. For detailed wiring, refer to the hardware schematic in the repository.
 
+![System Schematic](schematic.png)
+
 ### BCM GPIO Mapping
 * **Pin 18:** PWM Speed Control (Hardware PWM Channel 0, Alt5)
 * **Pin 23 & 24:** H-Bridge Directional Logic (DIR1 / DIR2)
