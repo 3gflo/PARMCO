@@ -1,31 +1,31 @@
-# --- Compiler and Flags ---
+# Compiler and Flags
 CC = gcc
 CFLAGS = -Wall -O2
-LIBS = -lbcm2835
 
-# --- Files and Target ---
-TARGET = motortest
-OBJS = motor_test.o control.o
+# Required External Libraries
+# -lbcm2835: For GPIO and Hardware PWM
+# -lbluetooth: For RFCOMM socket communication
+LDFLAGS = -lbcm2835 -lbluetooth
 
-# --- Default Build Rule ---
+# File Names
+TARGET = bt_motor_control
+C_SRC = bt_motor_control.c
+ASM_SRC = feedback.S
+
+# Combine both C and Assembly files for the build
+SRC = $(C_SRC) $(ASM_SRC)
+
+# Default rule when you just type 'make'
 all: $(TARGET)
 
-# --- Linking the final executable ---
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
+# Compilation rule
+$(TARGET): $(SRC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC) $(LDFLAGS)
 
-# --- Compiling the C file into an object file ---
-motor_test.o: motor_test.c
-	$(CC) $(CFLAGS) -c motor_test.c -o motor_test.o
-
-# --- Compiling the Assembly file into an object file ---
-control.o: control.S
-	$(CC) $(CFLAGS) -c control.S -o control.o
-
-# --- Custom Rule to Compile and Immediately Run as Root ---
+# Rule to compile (if needed) and run with root privileges
 run: $(TARGET)
 	sudo ./$(TARGET)
 
-# --- Cleanup Rule ---
+# Rule to clean up the compiled executable
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(TARGET)

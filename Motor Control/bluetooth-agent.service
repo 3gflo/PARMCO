@@ -1,0 +1,15 @@
+[Unit]
+Description=Bluetooth Auto-Accept Agent
+After=bluetooth.service
+PartOf=bluetooth.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/bt-agent -c NoInputNoOutput
+ExecStartPost=/bin/sleep 1
+ExecStartPost=/usr/bin/bluetoothctl discoverable on
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=bluetooth.target

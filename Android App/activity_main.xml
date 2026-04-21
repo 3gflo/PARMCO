@@ -2,13 +2,18 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="48dp"
+        android:clipToPadding="false">
 
         <TextView
             android:id="@+id/tvConnectionStatus"
@@ -106,7 +111,45 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Manual Speed Control:"
+            android:text="Closed-Loop Target Speed (Maintain Mode):"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
+
+            <EditText
+                android:id="@+id/etTargetRpm"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Target RPM"
+                android:inputType="number"
+                android:enabled="false"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnSetTargetRpm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Set RPM"
+                android:enabled="false"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="#CCCCCC"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Manual Power Control:"
             android:textSize="16sp"
             android:textStyle="bold"
             android:layout_marginBottom="8dp"/>
@@ -163,7 +206,17 @@
             android:text="Measured RPM: 0"
             android:textSize="22sp"
             android:textStyle="bold"
-            android:textColor="#D32F2F" />
+            android:textColor="#D32F2F"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvExternalRpm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="External RPM: 0"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#1976D2" />
 
     </LinearLayout>
 </ScrollView>
