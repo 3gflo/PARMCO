@@ -36,7 +36,7 @@ The project is organized into two primary functional layers, each with its own R
 
 ## 🔌 Hardware Configuration
 
-The system relies on a Raspberry Pi 4 connected to an L293D H-Bridge motor driver and IR optical encoder sensors. For detailed wiring, refer to the hardware schematic in the repository.
+The system relies on a Raspberry Pi 4 connected to an L293D H-Bridge motor driver and IR optical encoder sensors. For detailed wiring, refer to the hardware schematic.
 
 ![System Schematic](schematic.png)
 

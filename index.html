@@ -3,73 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PARMCO | Full-Stack Motor Control</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>PARMCO - Phone App RP4 Motor Control</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: var(--card-bg);
+            padding: 4rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .hero-image {
+            /* Translated from Tailwind classes to maintain a single-file design */
+            width: 16rem;
+            height: 16rem;
+            display: block;
+            margin: 0 auto 2rem auto;
+            border-radius: 50%;
+            border: 4px solid #334155;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            object-fit: cover;
+            background-color: #1e293b;
+        }
+        header h1 {
+            color: #ffffff;
+            font-size: 3rem;
+            margin: 0 0 1rem 0;
+        }
+        header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #8b949e;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h2 {
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 3rem;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #ffffff;
+        }
+        .schematic-image {
+            width: 100%;
+            max-width: 800px;
+            display: block;
+            margin: 2rem auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #ffffff; /* Adds contrast if the schematic has a transparent background */
+        }
+        ul {
+            padding-left: 1.5rem;
+        }
+        code {
+            background-color: rgba(110, 118, 129, 0.4);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+            border-top: 1px solid var(--border-color);
+            color: #8b949e;
+        }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans">
+<body>
 
-    <header class="bg-slate-900 text-white py-20 px-6 text-center">
-        <h1 class="text-5xl font-bold mb-4">PARMCO</h1>
-        <p class="text-xl text-slate-400 max-w-2xl mx-auto">Phone APP RP4 Motor Control: A complete vertical slice of embedded systems engineering, from Kotlin UI to ARM Assembly.</p>
-        <div class="mt-8">
-            <img src="https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763" 
-                 alt="PARMCO Helicopter Animation" 
-                 class="w-64 h-64 mx-auto rounded-full border-4 border-slate-700 shadow-xl object-cover bg-slate-800">
-        </div>
+    <header>
+        <img src="https://github.com/user-attachments/assets/626228cd-6c54-4045-8396-aba54e180763" 
+             alt="PARMCO Helicopter Animation" 
+             class="hero-image">
+        <h1>PARMCO 🚁⚙️</h1>
+        <p>Phone App RP4 Motor Control. A full-stack embedded engineering project bridging mobile application development with low-level C and ARM Assembly hardware control.</p>
     </header>
 
-    <section class="max-w-5xl mx-auto py-16 px-6">
-        <h2 class="text-3xl font-bold border-b-4 border-indigo-500 inline-block mb-8">System Architecture</h2>
-        <p class="text-lg text-slate-600 mb-10">PARMCO isn't just a motor controller; it's a demonstration of how disparate technologies—Android mobile apps, Bluetooth RFCOMM stacks, Linux C servers, and ARM Assembly—integrate into a single, cohesive feedback loop.</p>
-        
-        
-    </section>
+    <div class="container">
+        <section id="overview">
+            <h2>System Overview</h2>
+            <p>PARMCO consists of a real-time C control server running on a Raspberry Pi 4 and a Kotlin-based Android application. The Raspberry Pi drives a 12V DC motor via an L293D H-Bridge driver, while the Android app connects over Bluetooth RFCOMM to provide wireless control and live RPM telemetry.</p>
+            <p>The system is designed with low-latency control in mind, utilizing non-blocking RFCOMM servers via <code>select()</code> so incoming commands never stall the high-speed motor control loop.</p>
+        </section>
 
-    <section class="bg-white py-16 px-6 shadow-inner">
-        <div class="max-w-5xl mx-auto">
-            <h2 class="text-3xl font-bold mb-12 text-center">The Journey of a Command</h2>
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="p-6 bg-slate-50 rounded-lg border border-slate-200">
-                    <h3 class="font-bold text-indigo-600 mb-2">1. The Trigger</h3>
-                    <p class="text-sm">User adjusts PWM on the <b>Kotlin</b> Android App. A formatted ASCII string (e.g., <code>RPM:750</code>) is sent via Bluetooth RFCOMM.</p>
+        <section id="modes">
+            <h2>Operating Modes</h2>
+            <p>The application supports three distinct operating modes to demonstrate both open-loop and closed-loop control systems:</p>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>Manual Mode</h3>
+                    <p>Open-loop PWM control. The user directly sets the motor PWM via increment/decrement buttons in steps of 50, ranging from 0 to 1000. The feedback controller is bypassed.</p>
                 </div>
-                <div class="p-6 bg-slate-50 rounded-lg border border-slate-200">
-                    <h3 class="font-bold text-indigo-600 mb-2">2. The Logic</h3>
-                    <p class="text-sm">A <b>C Server</b> on the Raspberry Pi receives the packet. It hands off the Target vs. Actual RPM to an <b>ARM Assembly</b> routine for high-speed error calculation.</p>
+                <div class="card">
+                    <h3>Maintain Mode</h3>
+                    <p>Closed-loop speed hold. The app sends a target RPM, and the Pi runs an adaptive proportional controller written in ARM assembly to hold that speed automatically. The controller dynamically adjusts the PWM using gain scheduling based on the error magnitude.</p>
                 </div>
-                <div class="p-6 bg-slate-50 rounded-lg border border-slate-200">
-                    <h3 class="font-bold text-indigo-600 mb-2">3. The Action</h3>
-                    <p class="text-sm">The <b>L293D H-Bridge</b> drives the 12V motor. An <b>IR Sensor</b> counts blade rotations, sending live telemetry back to the phone at 4Hz.</p>
+                <div class="card">
+                    <h3>Synced Mode</h3>
+                    <p>Automatic target-matching. The Pi reads an external motor's RPM via a second IR sensor and dynamically matches the controlled motor's speed to it. No user input is required beyond selecting the mode.</p>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section class="max-w-5xl mx-auto py-16 px-6">
-        <h2 class="text-3xl font-bold mb-8">The Tech Stack</h2>
-        <div class="flex flex-wrap gap-4 mb-12">
-            <span class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full font-semibold">Kotlin</span>
-            <span class="px-4 py-2 bg-slate-200 text-slate-700 rounded-full font-semibold">C (BlueZ)</span>
-            <span class="px-4 py-2 bg-orange-100 text-orange-700 rounded-full font-semibold">ARM Assembly</span>
-            <span class="px-4 py-2 bg-red-100 text-red-700 rounded-full font-semibold">Raspberry Pi 4</span>
-            <span class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full font-semibold">Bluetooth RFCOMM</span>
-        </div>
-        
-        <div class="bg-slate-900 rounded-lg p-6 overflow-x-auto shadow-2xl">
-            <h4 class="text-slate-400 text-xs uppercase tracking-widest mb-4">Core Assembly Logic (control.S)</h4>
-            <pre class="text-green-400 font-mono text-sm">
-adjust_pwm:
-    sub r1, r1, r0      // Calculate Error (Target - Current)
-    cmp r1, #1500
-    blt gentle_gain
-    asr r1, r1, #4      // Aggressive Gain for high speeds
-    b apply_pwm</pre>
-        </div>
-    </section>
+        <section id="architecture">
+            <h2>Software Architecture</h2>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>Android App (Kotlin)</h3>
+                    <ul>
+                        <li>Follows a single-Activity architecture using <code>MainActivity.kt</code>.</li>
+                        <li>Spawns a dedicated background thread for the Bluetooth socket connection and telemetry listener.</li>
+                        <li>Receives and parses <code>MEASURED_RPM</code> and <code>EXTERNAL_RPM</code> data from the Pi once per second to update the UI.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Raspberry Pi Backend (C/ASM)</h3>
+                    <ul>
+                        <li><code>bt_motor_control.c</code> handles BCM2835 GPIO hardware initialization and the Bluetooth RFCOMM server.</li>
+                        <li><code>feedback.S</code> is a 32-bit ARM assembly function implementing the adaptive proportional controller.</li>
+                        <li>A headless systemd service (<code>bluetooth-agent.service</code>) allows the Pi to auto-accept Bluetooth pairings without user intervention.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
 
-    <footer class="bg-slate-900 text-slate-500 py-12 text-center border-t border-slate-800">
-        <p>Project PARMCO &copy; 2026</p>
-        <a href="https://github.com/YOUR_USERNAME/PARMCO" class="text-indigo-400 hover:text-white underline mt-4 inline-block">View Full Source Code on GitHub</a>
+        <section id="hardware">
+            <h2>Hardware & Circuit Configuration</h2>
+            <img src="schematic.png" alt="System Schematic" class="schematic-image">
+            <p>The hardware interface relies on the BCM2835 library to map specific GPIO pins to the L293D H-Bridge and IR optical encoders.</p>
+            <ul>
+                <li><strong>Pin 18:</strong> Hardware PWM Output (Channel 0, Alt5) for smooth speed control.</li>
+                <li><strong>Pin 23 & 24:</strong> H-Bridge Directional Logic (DIR1 / DIR2) to control rotation polarity.</li>
+                <li><strong>Pin 25:</strong> IR Encoder Input reading the controlled motor's tachometer.</li>
+                <li><strong>Pin 19:</strong> IR Encoder Input reading the external motor for Synced mode.</li>
+            </ul>
+        </section>
+
+        <section id="protocol">
+            <h2>Bluetooth Communication Protocol</h2>
+            <p>Data is exchanged as newline-delimited ASCII strings over Bluetooth RFCOMM using the SPP UUID <code>00001101-0000-1000-8000-00805F9B34FB</code>.</p>
+            <ul>
+                <li><strong>State Sync:</strong> On connection, the app transmits its full UI state to the Pi so both devices start in agreement.</li>
+                <li><strong>Commands (App → Pi):</strong> Includes state toggles (<code>STATE:START</code>), direction (<code>DIR:FORWARD</code>), mode selection, and target RPM settings.</li>
+                <li><strong>Telemetry (Pi → App):</strong> Sends <code>MEASURED_RPM</code> and <code>EXTERNAL_RPM</code> updates once every second.</li>
+                <li><strong>Safety:</strong> If the Bluetooth connection drops, the Pi automatically forces the motor PWM to 0 and resets state variables.</li>
+            </ul>
+        </section>
+    </div>
+
+    <footer>
+        <p>Built for Embedded Systems Engineering. Managed via GitHub Pages.</p>
     </footer>
 
 </body>
