@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARMCO - RP4 Motor Control Details</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        nav {
+            background-color: #010409;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        nav a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        header {
+            background-color: var(--card-bg);
+            padding: 4rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        header h1 {
+            color: #ffffff;
+            font-size: 2.5rem;
+            margin: 0 0 1rem 0;
+        }
+        header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #8b949e;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h2 {
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 3rem;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #ffffff;
+        }
+        ul {
+            padding-left: 1.5rem;
+        }
+        code {
+            background-color: rgba(110, 118, 129, 0.4);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+        }
+        .code-block {
+            background-color: #161b22;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+            color: #e6edf3;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+            border-top: 1px solid var(--border-color);
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html">← Back to Home</a>
+    </nav>
+
+    <header>
+        <h1>Raspberry Pi Control Backend</h1>
+        <p>The real-time C/ASM embedded software that drives the DC motor over hardware PWM, measures tachometer speed, and dynamically regulates power based on Bluetooth RFCOMM commands.</p>
+    </header>
+
+    <div class="container">
+        <section id="architecture">
+            <h2>System Architecture (C Backend)</h2>
+            <p>The primary executable, <code>bt_motor_control.c</code>, initializes the BCM2835 hardware library and acts as a central control loop. It relies on a two-layer loop architecture to guarantee low-latency hardware control while serving network requests:</p>
+            <ul>
+                <li><strong>Outer Loop (Connection Handling):</strong> Blocks on <code>accept()</code> waiting for the Android app to connect. If the connection drops, it safely resets the motor state (forcing PWM to 0) and loops back to wait for a reconnection.</li>
+                <li><strong>Inner Loop (High-Speed Control):</strong> Polls the IR sensors for RPM calculations with a 100µs delay to prevent 100% CPU lockup. Crucially, it uses the non-blocking <code>select()</code> system call on the Bluetooth socket; incoming commands are parsed instantly without ever stalling the motor control logic.</li>
+            </ul>
+        </section>
+
+        <section id="assembly">
+            <h2>ARM Assembly Feedback Controller</h2>
+            <p>To strictly control closed-loop logic execution, the adaptive proportional (P) controller is written in 32-bit ARM Assembly (<code>feedback.S</code>) using the AArch32 calling convention. Instead of floating-point math, it uses high-speed bit-shifting for dynamic gain scheduling.</p>
+            
+            <div class="card-grid">
+                <div class="card">
+                    <h3>Adaptive Gain Scheduling</h3>
+                    <p>The controller adjusts the "P-Gain" dynamically based on the absolute error size. Massive errors trigger an aggressive division by 8 (Shift 3), while smaller errors gracefully step down to divisions of 16, 32, and finally 64.</p>
+                </div>
+                <div class="card">
+                    <h3>Deadband & Dampening</h3>
+                    <p>At an error &lt; 100, the Shift 6 division acts as a deadband, preventing the motor from violently oscillating. If the target speed is low (&lt; 1000 RPM), an extra shift layer is added to prevent over-torquing the system.</p>
+                </div>
+                <div class="card">
+                    <h3>Safety Clamping</h3>
+                    <p>After the offset is calculated and applied to the current PWM, the assembly routine rigorously clamps the final output so it never drops below 0 or exceeds the hardware limit of 1000.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="headless">
+            <h2>Headless Deployment & Build Tools</h2>
+            <p>To ensure the Raspberry Pi can operate as an isolated embedded system, interaction with the desktop environment is entirely removed.</p>
+            <ul>
+                <li><strong>Headless Bluetooth:</strong> The system utilizes a custom systemd service (<code>bluetooth-agent.service</code>) running <code>/usr/bin/bt-agent -c NoInputNoOutput</code>. This forces the BlueZ stack to automatically accept all incoming pairing requests without prompting for a PIN.</li>
+                <li><strong>Compilation:</strong> The provided <code>makefile</code> links both the C application and the compiled assembly object with <code>-lbcm2835</code> (for hardware GPIO) and <code>-lbluetooth</code> (for the RFCOMM socket).</li>
+            </ul>
+            <div class="code-block">
+# Compilation via Makefile
+gcc -Wall -O2 -o bt_motor_control bt_motor_control.c feedback.S -lbcm2835 -lbluetooth
+            </div>
+        </section>
+
+        <section id="limitations">
+            <h2>Design Limitations</h2>
+            <p>As documented in the design analysis, this implementation has a few constraints:</p>
+            <ul>
+                <li><strong>Polling-Based RPM:</strong> Because the BCM2835 userspace library lacks true interrupt-driven edge counting, the system relies on tight polling. Extremely high RPM pulses shorter than the 100µs polling window could theoretically be missed.</li>
+                <li><strong>Feedback Interval:</strong> The control loop only updates the PWM offset once per second. Transient load disturbances occurring within that one-second window are not corrected until the next cycle.</li>
+                <li><strong>Steady-State Error:</strong> The lack of Integral (I) and Derivative (D) terms means a small steady-state error can persist when the bit-shifted deadband divisor becomes larger than the remaining RPM gap.</li>
+            </ul>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>Built for Embedded Systems Engineering. Managed via GitHub Pages.</p>
+    </footer>
+
+</body>
+</html>

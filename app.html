@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARMCO - Android Application Details</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        nav {
+            background-color: #010409;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        nav a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        header {
+            background-color: var(--card-bg);
+            padding: 4rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        header h1 {
+            color: #ffffff;
+            font-size: 2.5rem;
+            margin: 0 0 1rem 0;
+        }
+        header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #8b949e;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h2 {
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 3rem;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #ffffff;
+        }
+        ul {
+            padding-left: 1.5rem;
+        }
+        code {
+            background-color: rgba(110, 118, 129, 0.4);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        table, th, td {
+            border: 1px solid var(--border-color);
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: var(--card-bg);
+            color: #ffffff;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+            border-top: 1px solid var(--border-color);
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html">← Back to Home</a>
+    </nav>
+
+    <header>
+        <h1>Android App Implementation</h1>
+        <p>A Kotlin-based application providing real-time wireless control and telemetry monitoring of the Raspberry Pi 4 motor control system over Bluetooth RFCOMM.</p>
+    </header>
+
+    <div class="container">
+        <section id="architecture">
+            <h2>Architecture & Threading Model</h2>
+            <p>The app follows a single-Activity architecture where <code>MainActivity.kt</code> manages UI binding, state management, and Bluetooth I/O.</p>
+            <ul>
+                <li><strong>Background Threading:</strong> The Bluetooth socket connection and telemetry listener run on a dedicated background thread spawned inside the <code>connectToDevice()</code> function.</li>
+                <li><strong>UI Updates:</strong> Because Android UI cannot be updated from background threads, telemetry data parsing uses <code>runOnUiThread{}</code> blocks to safely dispatch <code>MEASURED_RPM</code> and <code>EXTERNAL_RPM</code> updates back to the main thread.</li>
+                <li><strong>Connection Lifecycle:</strong> The listener thread blocks on <code>inputStream.read()</code>. If the connection drops, it catches an <code>IOException</code>, updates the UI to "Disconnected", and safely kills the listening thread.</li>
+            </ul>
+        </section>
+
+        <section id="ui-layout">
+            <h2>User Interface (activity_main.xml)</h2>
+            <p>The layout is contained within a <code>ScrollView</code> to accommodate all device screen sizes and uses a vertical <code>LinearLayout</code> for structure. Key sections include:</p>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>Connection & Status</h3>
+                    <p>A centered dynamic text view (<code>tvConnectionStatus</code>) displays the current Bluetooth state, alongside a full-width "Connect to Pi" button.</p>
+                </div>
+                <div class="card">
+                    <h3>Motor Controls</h3>
+                    <p>A horizontal layout pairs the Start/Stop toggle button with a "Reverse" polarity switch. A <code>RadioGroup</code> beneath it handles the mutually exclusive control modes: Manual, Maintain, and Synced.</p>
+                </div>
+                <div class="card">
+                    <h3>Live Telemetry</h3>
+                    <p>The bottom of the screen features dedicated text views for intended PWM, Measured RPM (styled in bold red), and External RPM (styled in bold blue).</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="bluetooth-handling">
+            <h2>Bluetooth Handshake & Synchronization</h2>
+            <p>The app handles legacy and modern Bluetooth permissions seamlessly, requesting <code>BLUETOOTH_CONNECT</code> and <code>BLUETOOTH_SCAN</code> on Android 12+ (API 31).</p>
+            <p>When connecting, the app creates a secure RFCOMM socket using the standard Serial Port Profile (SPP) UUID: <code>00001101-0000-1000-8000-00805F9B34FB</code>. Immediately upon connection, the app executes a <strong>State Sync</strong>—it blasts its current UI state (mode, intended PWM, polarity, target RPM) to the Pi so both devices begin in perfect agreement.</p>
+        </section>
+
+        <section id="protocol">
+            <h2>Communication Protocol</h2>
+            <p>All communication uses newline-delimited plaintext strings.</p>
+            
+            <h3>App → Pi (Commands)</h3>
+            <table>
+                <tr>
+                    <th>Command</th>
+                    <th>Description</th>
+                </tr>
+                <tr><td><code>STATE:START</code> / <code>STATE:STOP</code></td><td>Enables or disables motor output (forces PWM to 0).</td></tr>
+                <tr><td><code>DIR:FORWARD</code> / <code>DIR:REVERSE</code></td><td>Sets H-bridge polarity.</td></tr>
+                <tr><td><code>MODE:&lt;MANUAL/MAINTAIN/SYNCED&gt;</code></td><td>Switches the active control logic.</td></tr>
+                <tr><td><code>PWM:&lt;0-1000&gt;</code></td><td>Sets raw duty cycle in Manual mode.</td></tr>
+                <tr><td><code>TARGET_RPM:&lt;value&gt;</code></td><td>Sets the desired RPM for the feedback controller.</td></tr>
+            </table>
+
+            <h3 style="margin-top: 1.5rem;">Pi → App (Telemetry)</h3>
+            <table>
+                <tr>
+                    <th>Message</th>
+                    <th>Description</th>
+                </tr>
+                <tr><td><code>MEASURED_RPM:&lt;value&gt;</code></td><td>Controlled motor speed from IR tachometer.</td></tr>
+                <tr><td><code>EXTERNAL_RPM:&lt;value&gt;</code></td><td>External master motor speed from second IR sensor.</td></tr>
+            </table>
+        </section>
+
+        <section id="limitations">
+            <h2>Known Limitations & Constraints</h2>
+            <ul>
+                <li><strong>No automatic reconnection:</strong> If the Bluetooth connection is severed, the user must manually trigger a reconnection; the app does not poll to reconnect on its own.</li>
+                <li><strong>Unbounded RPM Input:</strong> The <code>EditText</code> field for Target RPM does not restrict values on the Android side. However, the Pi's feedback loop clamps the resulting PWM output safely.</li>
+                <li><strong>Single-thread parsing:</strong> The socket reader uses a 1024-byte buffer. While it gracefully splits chained strings via newline delimiters, partial messages split across separate physical reads are not explicitly reassembled.</li>
+            </ul>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>Built for Embedded Systems Engineering. Managed via GitHub Pages.</p>
+    </footer>
+
+</body>
+</html>
